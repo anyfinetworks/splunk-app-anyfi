@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?><form>
+  <label>Services</label>
+  <fieldset autoRun="true" submitButton="false">
+    <input type="time">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <chart>
+      <title>Active Services by Groups</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | eval group_list=mvjoin(service_groups,",")
+        | stats latest(group_list) as Groups by service_uuid
+        | stats count as Active by Groups
+      </searchTemplate>
+      <option name="charting.chart">pie</option>
+      <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
+      <option name="charting.drilldown">none</option>
+    </chart>
+    <chart>
+      <title>Traffic Volume by Service Groups</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | eval Groups=mvjoin(service_groups,",")
+        | stats sum(down_gb) as Down sum(up_gb) as Up by Groups
+        | eval GB=Up+Down
+        | fields Groups,GB
+      </searchTemplate>
+      <option name="charting.chart">pie</option>
+      <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
+      <option name="charting.drilldown">none</option>
+    </chart>
+    <chart>
+      <title>Traffic Volume by Service</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | stats latest(service_ssid) as service_ssid sum(down_gb) as Down sum(up_gb) as Up by service_uuid
+        | eval GB=Up+Down
+        | eval Service=service_ssid." (".service_uuid.")"
+        | sort - GB
+        | fields Service,GB
+      </searchTemplate>
+      <option name="charting.chart">pie</option>
+      <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
+      <option name="charting.drilldown">none</option>
+    </chart>
+  </row>
+  <row>
+    <table>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | eval Service=service_uuid
+        | stats latest(service_ssid) as SSID latest(service_local_radios) as "Local Radios" latest(service_auth) as auth sum(eval(exact(up_bytes/(1024*1024*1024)))) as up_gb sum(eval(exact(down_bytes/(1024*1024*1024)))) as down_gb by Service
+        | eval total_gb=up_gb+down_gb
+        | eval Down=round(down_gb,2) . " GB"
+        | eval Up=round(up_gb,2) . " GB"
+        | eval Authentication=case(auth=="open","Open",auth=="psk","Personal",auth=="eap","Enterprise")
+        | sort - total_gb
+        | fields Service,SSID,"Local Radios",Authentication,Up,Down
+      </searchTemplate>
+      <option name="wrap">false</option>
+      <option name="rowNumbers">true</option>
+      <option name="dataOverlayMode">none</option>
+      <option name="drilldown">none</option>
+      <option name="count">10</option>
+    </table>
+  </row>
+</form>

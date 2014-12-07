@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?><form>
+  <label>Radios</label>
+  <fieldset autoRun="true" submitButton="false">
+    <input type="time">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <chart>
+      <title>Active Radios by Groups</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | eval Radio=radio_hwaddr
+        | eval group_list=mvjoin(radio_groups,",")
+        | stats latest(group_list) as Groups by Radio
+        | stats count as Active by Groups
+      </searchTemplate>
+      <option name="charting.chart">pie</option>
+      <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
+      <option name="charting.drilldown">none</option>
+    </chart>
+    <chart>
+      <title>Traffic Volume by Radio Groups</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | eval Groups=mvjoin(radio_groups,",")
+        | stats sum(down_gb) as Down sum(up_gb) as Up by Groups
+        | eval GB=Up+Down
+        | fields Groups,GB
+      </searchTemplate>
+      <option name="charting.chart">pie</option>
+      <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
+      <option name="charting.drilldown">none</option>
+    </chart>
+    <chart>
+      <title>Traffic Volume by Radio</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | eval Radio=radio_hwaddr
+        | stats sum(down_gb) as Down sum(up_gb) as Up by Radio
+        | eval GB=Up+Down
+        | sort - GB
+        | fields Radio,GB
+      </searchTemplate>
+      <option name="charting.chart">pie</option>
+      <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
+      <option name="charting.drilldown">none</option>
+    </chart>
+  </row>
+  <row>
+    <table>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | eval Radio=radio_hwaddr
+        | stats latest(radio_freq) as freq latest(radio_addr) as "IP" latest(radio_software) as "Software" latest(radio_driver) as "Driver" sum(up_gb) as sum_up_gb sum(down_gb) as sum_down_gb by Radio
+        | eval total_gb=sum_up_gb+sum_down_gb
+        | eval Down=round(sum_down_gb,2) . " GB"
+        | eval Up=round(sum_up_gb,2) . " GB"
+        | eval Channel=freq . " MHz"
+        | sort - total_gb
+        | fields Radio,Channel,IP,Software,Driver,Up,Down
+      </searchTemplate>
+      <option name="wrap">false</option>
+      <option name="rowNumbers">true</option>
+      <option name="dataOverlayMode">none</option>
+      <option name="drilldown">none</option>
+      <option name="count">10</option>
+    </table>
+  </row>
+</form>

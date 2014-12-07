@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><form>
+  <label>Overview</label>
+  <fieldset autoRun="true" submitButton="false">
+    <input type="time">
+      <label>Period</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row grouping="1,1">
+    <map>
+      <title>Active Radios</title>
+      <searchTemplate>
+        <![CDATA[* sourcetype=anyfi_flow
+		| rex "radio_addr=(?<ip>[^:]*)" | iplocation ip
+        | geostats latfield=lat longfield=lon dc(radio_hwaddr) as Radios ]]>
+      </searchTemplate>
+      <option name="height">280px</option>
+      <!-- use custom colors -->
+      <!-- option name="mapping.seriesColors">[0x458B00, 0x8C1717, 0xF0A804]</option -->
+      <!-- option name="mapping.seriesColors">[0x66CD00, 0x8C1717, 0xF0A804]</option -->
+      <!-- adjust marker opacity and size range -->
+      <!-- Anyfi colors: [0x2C5AA0,0x6F7C91,0x834A8A,0x5E8A4A] -->
+      <option name="mapping.seriesColors">[0x2C5AA0]</option>
+      <option name="mapping.markerLayer.markerOpacity">0.8</option>
+      <option name="mapping.markerLayer.markerMinSize">30</option>
+      <option name="mapping.markerLayer.markerMaxSize">150</option>
+      <!-- set initial map center and zoom level -->
+      <option name="mapping.map.center">(30.810646,-10.556976)</option>
+      <option name="mapping.map.zoom">2</option>
+      <option name="mapping.tileLayer.minZoom">2</option>
+      <!-- option name="mapping.tileLayer.maxZoom">2</option -->
+      <option name="drilldown">none</option>
+    </map>
+    <chart>
+      <title>Session Quality</title>
+      <search>
+        <query>* sourcetype=anyfi_flow           | eventstats p50(avg_signal_dbm) as p50_avg_signal_dbm by flow_id           | eval quality=case(p50_avg_signal_dbm&lt;-77,"Poor",p50_avg_signal_dbm&lt;-65,"Fair",p50_avg_signal_dbm&gt;=-65,"Good")           | search quality="*"           | timechart dc(flow_id) by quality</query>
+      </search>
+      <option name="height">280</option>
+      <option name="charting.chart">area</option>
+      <option name="charting.axisTitleY.text">Sessions</option>
+      <option name="charting.chart.stackMode">stacked</option>
+      <option name="charting.drilldown">none</option>
+      <option name="charting.legend.labels">[Poor,Fair,Good]</option>
+      <option name="charting.legend.placement">right</option>
+      <option name="charting.seriesColors">[0x6F7C91,0x2C5AA0,0x5E8A4A]</option>
+      <option name="charting.axisTitleX.visibility">collapsed</option>
+    </chart>
+  </row>
+  <row>
+    <chart>
+      <title>Aggregate Bandwidth</title>
+      <search>
+        <query>
+          * sourcetype=anyfi_flow
+          | eval 20m_up_mbps=exact(up_bytes*8/(20*60*1024*1024))
+          | eval 20m_down_mbps=exact(down_bytes*8/(20*60*1024*1024))
+          | timechart sum(20m_up_mbps) as "Up" sum(20m_down_mbps) as "Down" span=20m
+        </query>
+      </search>
+      <option name="charting.chart">line</option>
+      <option name="charting.axisTitleX.visibility">collapsed</option>
+      <option name="charting.axisTitleY.text">Mbit/s</option>
+      <option name="charting.drilldown">none</option>
+      <option name="charting.legend.placement">right</option>
+      <option name="charting.seriesColors">[0x6F7C91,0x2C5AA0,0x834A8A]</option>
+    </chart>
+  </row>
+</form>

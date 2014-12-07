@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?><form>
+  <label>Wholesale</label>
+  <fieldset autoRun="true" submitButton="true">
+    <input type="time">
+      <label>Period</label>
+      <default>
+        <earliest>@mon</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="client_group">
+      <label>Clients</label>
+      <choice value="*">*</choice>
+      <default>*</default>
+      <populatingSearch fieldForValue="client_groups" fieldForLabel="client_groups">
+        * sourcetype=anyfi_flow | stats values(client_groups) as client_groups | mvexpand client_groups
+      </populatingSearch>
+    </input>
+    <input type="dropdown" token="radio_group">
+      <label>Radios</label>
+      <choice value="*">*</choice>
+      <default>*</default>
+      <populatingSearch fieldForValue="radio_groups" fieldForLabel="radio_groups">
+        * sourcetype=anyfi_flow | stats values(radio_groups) as radio_groups | mvexpand radio_groups
+      </populatingSearch>
+    </input>
+    <input type="dropdown" token="service_group">
+      <label>Services</label>
+      <choice value="*">*</choice>
+      <default>*</default>
+      <populatingSearch fieldForValue="service_groups" fieldForLabel="service_groups">
+        * sourcetype=anyfi_flow | stats values(service_groups) as service_groups | mvexpand service_groups
+      </populatingSearch>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+    <title>Summary</title>
+    <single>
+      <title>Clients</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | search client_groups=$client_group$ radio_groups=$radio_group$ service_groups=$service_group$
+        | stats dc(client_mac)
+      </searchTemplate>
+    </single>
+    <single>
+      <title>Radios</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | search client_groups=$client_group$ radio_groups=$radio_group$ service_groups=$service_group$
+        | stats dc(radio_hwaddr)
+      </searchTemplate>
+    </single>
+    <single>
+      <title>Services</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | search client_groups=$client_group$ radio_groups=$radio_group$ service_groups=$service_group$
+        | stats dc(service_uuid)
+      </searchTemplate>
+    </single>
+    <single>
+      <title>Total Up</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | search client_groups=$client_group$ radio_groups=$radio_group$ service_groups=$service_group$
+        | stats sum(up_gb) as sum_up_gb
+        | eval up=round(sum_up_gb,2) . " GB"
+        | fields up
+      </searchTemplate>
+    </single>
+    <single>
+      <title>Total Down</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | search client_groups=$client_group$ radio_groups=$radio_group$ service_groups=$service_group$
+        | stats sum(down_gb) as sum_down_gb
+        | eval down=round(sum_down_gb,2) . " GB"
+        | fields down
+      </searchTemplate>
+    </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Aggregates</title>
+    <chart>
+      <title>Bandwidth</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow         
+        | search client_groups=$client_group$ radio_groups=$radio_group$ service_groups=$service_group$
+        | eval 1h_up_mbps=exact(up_bytes*8/(60*60*1024*1024))         
+        | eval 1h_down_mbps=exact(down_bytes*8/(60*60*1024*1024))         
+        | timechart sum(1h_up_mbps) as "Up" sum(1h_down_mbps) as "Down" span=1h
+      </searchTemplate>
+      <option name="charting.chart">line</option>
+      <option name="charting.axisTitleX.visibility">collapsed</option>
+      <option name="charting.axisTitleY.text">Mbit/s</option>
+      <option name="charting.drilldown">none</option>
+      <option name="charting.seriesColors">[0x6F7C91,0x2C5AA0,0x834A8A]</option>
+    </chart>
+    </panel>
+  </row>
+</form>

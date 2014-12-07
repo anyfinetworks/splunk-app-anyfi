@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?><form>
+  <label>Clients</label>
+  <fieldset autoRun="true" submitButton="false">
+    <input type="time">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <chart>
+      <title>Active Clients by Groups</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | eval group_list=mvjoin(client_groups,",")
+        | stats latest(group_list) as Groups by client_mac
+        | stats count as Active by Groups
+      </searchTemplate>
+      <option name="charting.chart">pie</option>
+      <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
+      <option name="charting.drilldown">none</option>
+    </chart>
+    <chart>
+      <title>Traffic Volume by Client Groups</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | eval Groups=mvjoin(client_groups,",")
+        | stats sum(down_gb) as Down sum(up_gb) as Up by Groups
+        | eval GB=Up+Down
+        | fields Groups,GB
+      </searchTemplate>
+      <option name="charting.chart">pie</option>
+      <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
+      <option name="charting.drilldown">none</option>
+    </chart>
+    <chart>
+      <title>Traffic Volume by Client</title>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | stats sum(down_gb) as Down sum(up_gb) as Up by client_mac
+        | eval GB=Up+Down
+        | eval Client=client_mac
+        | sort - GB
+        | fields Client,GB
+      </searchTemplate>
+      <option name="charting.chart">pie</option>
+      <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
+      <option name="charting.drilldown">none</option>
+    </chart>
+  </row>
+  <row>
+    <table>
+      <searchTemplate>
+        * sourcetype=anyfi_flow
+        | eval Client=client_mac
+        | stats mode(radio_hwaddr) as "Most Used Radio" mode(service_uuid) as "Most Used Service" sum(up_mb) as sum_up_mb sum(down_mb) as sum_down_mb by Client
+        | eval total_mb=sum_up_mb+sum_down_mb
+        | eval Down=round(sum_down_mb,1) . " MB"
+        | eval Up=round(sum_up_mb,1) . " MB"
+        | sort - total_mb
+        | fields Client,"Most Used Radio","Most Used Service",Up,Down
+      </searchTemplate>
+      <option name="wrap">false</option>
+      <option name="rowNumbers">true</option>
+      <option name="dataOverlayMode">none</option>
+      <option name="drilldown">none</option>
+      <option name="count">10</option>
+    </table>
+  </row>
+</form>
