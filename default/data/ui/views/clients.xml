@@ -10,6 +10,7 @@
     </input>
   </fieldset>
   <row>
+    <panel>
     <chart>
       <title>Active Clients by Groups</title>
       <searchTemplate>
@@ -22,6 +23,8 @@
       <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
       <option name="charting.drilldown">none</option>
     </chart>
+    </panel>
+    <panel>
     <chart>
       <title>Traffic Volume by Client Groups</title>
       <searchTemplate>
@@ -35,6 +38,8 @@
       <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
       <option name="charting.drilldown">none</option>
     </chart>
+    </panel>
+    <panel>
     <chart>
       <title>Traffic Volume by Client</title>
       <searchTemplate>
@@ -49,10 +54,13 @@
       <option name="charting.seriesColors">[0x2C5AA0,0x6F7C91,0x5E8A4A,0x834A8A,0x5AA02C,0xB27D4C,0x009FE2]</option>
       <option name="charting.drilldown">none</option>
     </chart>
+    </panel>
   </row>
   <row>
+    <panel>
     <table>
-      <searchTemplate>
+      <search>
+      <query>
         * sourcetype=anyfi_flow
         | eval Client=client_mac
         | stats mode(radio_hwaddr) as "Most Used Radio" mode(service_uuid) as "Most Used Service" sum(up_mb) as sum_up_mb sum(down_mb) as sum_down_mb by Client
@@ -60,13 +68,77 @@
         | eval Down=round(sum_down_mb,1) . " MB"
         | eval Up=round(sum_up_mb,1) . " MB"
         | sort - total_mb
-        | fields Client,"Most Used Radio","Most Used Service",Up,Down
-      </searchTemplate>
+        | fields Client,"Most Used Radio","Most Used Service",Up,Down</query>
+      </search>
       <option name="wrap">false</option>
       <option name="rowNumbers">true</option>
       <option name="dataOverlayMode">none</option>
-      <option name="drilldown">none</option>
+      <option name="drilldown">row</option>
       <option name="count">10</option>
+      <drilldown>
+	<link>
+	  <![CDATA[/app/anyfi_analytics/clients?form.client_mac=$row.Client$]]>
+	</link>
+      </drilldown>
     </table>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$client_mac$">
+      <input type="text" token="client_mac" searchWhenChanged="true" depends="$hidden$"></input>
+      <title>Usage per Radio for Client $client_mac$</title>
+      <table>
+	<search>
+	  <query>
+	    * sourcetype=anyfi_flow AND client_mac=$client_mac$
+	    | stats values(radio_hwaddr) as Radio sum(up_mb) as sum_up_mb sum(down_mb) as sum_down_mb sum(timeendpos) as seconds avg(avg_signal_dbm) as avg_signal min(min_signal_dbm) as min_signal max(max_signal_dbm) as max_signal sum(down_pkts) as sum_down_pkts sum(up_pkts) as sum_up_pkts sum(down_lost_pkts) as sum_down_lost_pkts sum(up_lost_pkts) as sum_up_lost_pkts count(eval(state="tunnel_error")) as "Tunnel Errors" count(eval(state="auth_error")) as "Auth Errors" by radio_hwaddr
+	    | eval Down=round(sum_down_mb,1) . " MB"
+	    | eval total_mb=sum_up_mb + sum_down_mb
+	    | eval Up=round(sum_up_mb,1) . " MB"
+	    | eval Duration=tostring(seconds, "duration")
+	    | eval Best=max_signal . " dBm"
+	    | eval Worst=min_signal . " dBm"
+	    | eval Average=round(avg_signal,1) . " dBm"
+	    | eval "Packet Loss"=round((sum_up_lost_pkts + sum_down_lost_pkts) / (sum_up_pkts + sum_down_pkts), 2) . "%"
+	    | sort - total_mb
+	    | fields Radio, Up, Down, Duration, Best, Worst, Average, "Packet Loss", "Tunnel Errors", "Auth Errors"
+	  </query>
+	</search>
+	<option name="wrap">false</option>
+	<option name="rowNumbers">true</option>
+	<option name="dataOverlayMode">none</option>
+	<option name="drilldown">none</option>
+	<option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$client_mac$">
+      <input type="text" token="client_mac" searchWhenChanged="true" depends="$hidden$"></input>
+      <title>Usage per Service for Client $client_mac$</title>
+      <table>
+	<search>
+	  <query>
+	    * sourcetype=anyfi_flow AND client_mac=$client_mac$
+	    | stats values(service_uuid) as Service sum(up_mb) as sum_up_mb sum(down_mb) as sum_down_mb sum(timeendpos) as seconds avg(avg_signal_dbm) as avg_signal min(min_signal_dbm) as min_signal max(max_signal_dbm) as max_signal sum(down_pkts) as sum_down_pkts sum(up_pkts) as sum_up_pkts sum(down_lost_pkts) as sum_down_lost_pkts sum(up_lost_pkts) as sum_up_lost_pkts count(eval(state="tunnel_error")) as "Tunnel Errors" count(eval(state="auth_error")) as "Auth Errors" by service_uuid
+	    | eval Down=round(sum_down_mb,1) . " MB"
+	    | eval total_mb=sum_up_mb + sum_down_mb
+	    | eval Up=round(sum_up_mb,1) . " MB"
+	    | eval Duration=tostring(seconds, "duration")
+	    | eval Best=max_signal . " dBm"
+	    | eval Worst=min_signal . " dBm"
+	    | eval Average=round(avg_signal,1) . " dBm"
+	    | eval "Packet Loss"=round((sum_up_lost_pkts + sum_down_lost_pkts) / (sum_up_pkts + sum_down_pkts), 2) . "%"
+	    | sort - total_mb
+	    | fields Service, Up, Down, Duration, Best, Worst, Average, "Packet Loss", "Tunnel Errors", "Auth Errors"
+	  </query>
+	</search>
+	<option name="wrap">false</option>
+	<option name="rowNumbers">true</option>
+	<option name="dataOverlayMode">none</option>
+	<option name="drilldown">none</option>
+	<option name="count">10</option>
+      </table>
+    </panel>
   </row>
 </form>
