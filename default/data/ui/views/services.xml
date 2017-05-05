@@ -92,7 +92,7 @@
             | eval Best=max_signal . " dBm"
             | eval Worst=min_signal . " dBm"
             | eval Average=round(avg_signal,1) . " dBm"
-            | eval "Packet Loss"=round((sum_up_lost_pkts + sum_down_lost_pkts) / (sum_up_pkts + sum_down_pkts), 2) . "%"
+            | eval "Packet Loss"=round(100 * (sum_up_lost_pkts + sum_down_lost_pkts) / (sum_up_pkts + sum_down_pkts), 2) . "%"
             | sort - total_mb
             | fields Radio, Up, Down, Duration, Best, Worst, Average, "Packet Loss", "Tunnel Errors", "Auth Errors"
           </query>
@@ -121,7 +121,7 @@
             | eval Best=max_signal . " dBm"
             | eval Worst=min_signal . " dBm"
             | eval Average=round(avg_signal,1) . " dBm"
-            | eval "Packet Loss"=round((sum_up_lost_pkts + sum_down_lost_pkts) / (sum_up_pkts + sum_down_pkts), 2) . "%"
+            | eval "Packet Loss"=round(100 * (sum_up_lost_pkts + sum_down_lost_pkts) / (sum_up_pkts + sum_down_pkts), 2) . "%"
             | sort - total_mb
             | fields Client, Up, Down, Duration, Best, Worst, Average, "Packet Loss", "Tunnel Errors", "Auth Errors"
           </query>
